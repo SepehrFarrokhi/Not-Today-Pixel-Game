@@ -1,3 +1,4 @@
+🛡️ NOT TODAY! 🛡️
 "They say nobody survives Phase 10. I say: Not Today."
 
 Not Today is a creative explosion of arcade-style combat and strategic survival. Starting as a lone survivor with a basic pistol, you must blast through 10 escalating phases of pixel-art chaos.
