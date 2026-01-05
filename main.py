@@ -84,7 +84,7 @@ try:
     snd_hit = pygame.mixer.Sound("sounds/hit.wav")
     snd_death = pygame.mixer.Sound("sounds/death.wav")
     snd_boss = pygame.mixer.Sound("sounds/boss.wav")
-    pygame.mixer.music.load("sounds/music.wav")
+    pygame.mixer.music.load("sounds/music.mp3")
     pygame.mixer.music.play(-1)
 except:
     snd_shoot = snd_hit = snd_death = snd_boss = None
