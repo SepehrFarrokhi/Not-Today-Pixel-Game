@@ -2,6 +2,7 @@ import pygame
 import math
 import sys
 import random
+from graphics_manager import GraphicManager
 
 # --- CONFIGURATION & CONSTANTS ---
 WIDTH, HEIGHT = 800, 600
@@ -19,6 +20,7 @@ clock = pygame.time.Clock()
 font_big = pygame.font.SysFont(None, 80)
 font_mid = pygame.font.SysFont(None, 50)
 font_small = pygame.font.SysFont(None, 28)
+gfx = GraphicManager()
 
 # --- GAME STATE ---
 game = {
@@ -120,7 +122,7 @@ running, last_spawn_time = True, 0
 while running:
     dt = clock.tick(60)
     now = pygame.time.get_ticks()
-    screen.fill(BLACK)
+    screen.fill((0, 0, 0))
     
     # Screen Shake
     offset = pygame.Vector2(0, 0)
@@ -218,6 +220,20 @@ while running:
         if keys[pygame.K_s]: player["pos"].y += player["speed"]
         if keys[pygame.K_a]: player["pos"].x -= player["speed"]
         if keys[pygame.K_d]: player["pos"].x += player["speed"]
+        
+        is_moving = keys[pygame.K_w] or keys[pygame.K_s] or keys[pygame.K_a] or keys[pygame.K_d]
+        is_shooting = pygame.mouse.get_pressed()[0]
+        if is_shooting:
+            player_state = "attack"
+        elif is_moving:
+            player_state = "run"
+        else:
+            player_state = "idle"
+
+        if now - player["hit_flash"] < 200:
+            player_state = "hurt"
+        
+        gfx.draw_player(screen, player["pos"], offset, player_state)
 
         # Missile Support
         if player["missile_unlocked"] and now - player["last_missile"] > COOLDOWNS["missile"]:
@@ -334,8 +350,12 @@ while running:
             pygame.draw.circle(screen, col, en + offset, enemy_radius)
         
         p_col = WHITE if now - player["hit_flash"] > 100 else YELLOW
-        pygame.draw.circle(screen, p_col, player["pos"] + offset, player["radius"])
-        for b in bullets: pygame.draw.circle(screen, b["color"], b["pos"] + offset, bullet_radius)
+        for b in bullets:
+            bullet_frame = (now // 100) % 8
+            img = gfx.get_frame(gfx.spell_sheet, 0, bullet_frame, 64, 64)
+            img = pygame.transform.scale(img, (32, 32))
+            rect = img.get_rect(center=(b["pos"].x + offset.x, b["pos"].y + offset.y))
+            screen.blit(img, rect)
         for m in missiles: pygame.draw.circle(screen, ORANGE, m["pos"] + offset, 6)
         for p in particles: pygame.draw.circle(screen, p["col"], p["pos"] + offset, 3)
 
