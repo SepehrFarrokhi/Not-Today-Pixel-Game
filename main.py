@@ -3,9 +3,10 @@ import math
 import sys
 import random
 from graphics_manager import GraphicManager
+from graphics_manager import GameBackground
 
 # --- CONFIGURATION & CONSTANTS ---
-WIDTH, HEIGHT = 800, 600
+WIDTH, HEIGHT = 1280, 720
 WHITE, BLACK, RED, YELLOW, GREEN = (255, 255, 255), (20, 20, 20), (200, 50, 50), (255, 255, 0), (50, 200, 50)
 GRAY, PURPLE, CYAN, ORANGE = (50, 50, 50), (150, 0, 150), (0, 255, 255), (255, 165, 0)
 
@@ -14,13 +15,14 @@ GAME_MENU, GAME_LOADING, GAME_PLAYING, GAME_PAUSED, GAME_SHOP, GAME_WIN = range(
 # --- INITIALIZATION ---
 pygame.init()
 pygame.mixer.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.DOUBLEBUF)
 pygame.display.set_caption("NOT TODAY!")
 clock = pygame.time.Clock()
 font_big = pygame.font.SysFont(None, 80)
 font_mid = pygame.font.SysFont(None, 50)
 font_small = pygame.font.SysFont(None, 28)
 gfx = GraphicManager()
+bg_manager = GameBackground(WIDTH, HEIGHT)
 
 # --- GAME STATE ---
 game = {
@@ -78,7 +80,7 @@ enemy_hit_flash = {}
 
 # Constants for tuning
 COOLDOWNS = {"pistol": 300, "shotgun": 600, "triple": 400, "missile": 2000, "nova": 5000, "damage": 500}
-bullet_speed, bullet_radius, enemy_radius, enemy_speed = 10, 4, 12, 2
+bullet_speed, bullet_radius, enemy_radius, enemy_speed = 7, 4, 12, 2
 
 # --- SOUNDS ---
 try:
@@ -123,13 +125,15 @@ while running:
     dt = clock.tick(60)
     now = pygame.time.get_ticks()
     screen.fill((0, 0, 0))
-    
     # Screen Shake
     offset = pygame.Vector2(0, 0)
     if game["shake_timer"] > 0:
         game["shake_timer"] -= dt
-        offset = pygame.Vector2(random.randint(-game["shake_intensity"], game["shake_intensity"]), 
-                                random.randint(-game["shake_intensity"], game["shake_intensity"]))
+        offset.x = random.randint(-game["shake_intensity"], game["shake_intensity"]) 
+        offset.y = random.randint(-game["shake_intensity"], game["shake_intensity"])
+        
+    bg_manager.update(game["phase"])
+    bg_manager.draw(screen, offset.x, offset.y)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT: running = False
@@ -350,15 +354,24 @@ while running:
             pygame.draw.circle(screen, col, en + offset, enemy_radius)
         
         p_col = WHITE if now - player["hit_flash"] > 100 else YELLOW
+        # --- DRAW BULLETS ---
         for b in bullets:
-            bullet_frame = (now // 100) % 8
-            img = gfx.get_frame(gfx.spell_sheet, 0, bullet_frame, 64, 64)
-            img = pygame.transform.scale(img, (32, 32))
-            rect = img.get_rect(center=(b["pos"].x + offset.x, b["pos"].y + offset.y))
-            screen.blit(img, rect)
-        for m in missiles: pygame.draw.circle(screen, ORANGE, m["pos"] + offset, 6)
-        for p in particles: pygame.draw.circle(screen, p["col"], p["pos"] + offset, 3)
+            bullet_frame = (now // 80) % 8
+            
+            img = gfx.get_frame(gfx.spell_sheet, 0, bullet_frame, 100, 100)
+            angle = math.degrees(math.atan2(-b["dir"].y, b["dir"].x))
+            
+            img = pygame.transform.scale(img, (65, 65))
+            img = pygame.transform.rotate(img, angle)
 
+            draw_x = int(b["pos"].x + offset.x)
+            draw_y = int(b["pos"].y + offset.y)
+            
+            rect = img.get_rect(center=(draw_x, draw_y))            
+            screen.blit(img, rect)
+
+        for p in particles: pygame.draw.circle(screen, p["col"], p["pos"] + offset, 3)
+# 1. Animation sync
         # UI
         screen.blit(pygame.font.SysFont(None, 30).render(f"Score: {game['score']} Phase: {game['phase']}/{game['max_phases']}", True, WHITE), (10, 10))
         pygame.draw.rect(screen, RED, (10, 40, 220, 20))
